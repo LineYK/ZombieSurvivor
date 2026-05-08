@@ -23,21 +23,46 @@ public class PlayerMovement : MonoBehaviour {
         // 물리 갱신 주기마다 움직임, 회전, 애니메이션 처리 실행
         Rotate();
         Move();
-
-        playerAnimator.SetFloat("Move", playerInput.move);
+        float moveMagnitude = new Vector2(playerInput.moveX, playerInput.moveZ).magnitude;
+        playerAnimator.SetFloat("Move", moveMagnitude);
     }
 
     // 입력값에 따라 캐릭터를 앞뒤로 움직임
     private void Move() {
-        Vector3 moveDistance = playerInput.move * transform.forward * moveSpeed * Time.deltaTime;
+        Vector3 cameraForward = Camera.main.transform.forward;
+        Vector3 cameraRight = Camera.main.transform.right;
+
+        cameraForward.y = 0;
+        cameraRight.y = 0;
+
+        cameraForward.Normalize();
+        cameraRight.Normalize();
+
+        Vector3 moveDircetion = cameraForward * playerInput.moveZ + cameraRight * playerInput.moveX;
+        moveDircetion = moveDircetion.normalized;
+
+        Vector3 moveDistance = moveDircetion * moveSpeed * Time.deltaTime;
 
         playerRigidbody.MovePosition(playerRigidbody.position +  moveDistance);
     }
 
     // 입력값에 따라 캐릭터를 좌우로 회전
     private void Rotate() {
-        float turn = playerInput.rotate * rotateSpeed * Time.deltaTime;
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
-        playerRigidbody.rotation = playerRigidbody.rotation * Quaternion.Euler(0, turn, 0);
+        Plane groundPlane = new Plane(Vector3.up, transform.position);
+        float rayDistance;
+
+        if (groundPlane.Raycast(ray, out rayDistance))
+        {
+            Vector3 point = ray.GetPoint(rayDistance);
+
+            Vector3 lookDirection = point - transform.position;
+
+            lookDirection.y = 0;
+
+            playerRigidbody.MoveRotation(Quaternion.LookRotation(lookDirection));
+        }
+
     }
 }
